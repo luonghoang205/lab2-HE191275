@@ -1,66 +1,54 @@
-import React, { useState } from 'react';
+import React, { useRef, useEffect } from 'react';
+import { FaSearch, FaTimes } from 'react-icons/fa';
 
-export default function AddBar({ onAddMovie }) {
-  const [title, setTitle] = useState('');
-  const [genre, setGenre] = useState('Sci-Fi');
-  const [year, setYear] = useState('');
-  const [rating, setRating] = useState('');
+function SearchBar({ searchTerm, onSearchChange }) {
+  const inputRef = useRef(null);
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (!title.trim()) return;
+  // Automatic focus on the search input on mount
+  useEffect(() => {
+    if (inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, []);
 
-    const newMovie = {
-      title: title.trim(),
-      genre,
-      year: Number(year) || new Date().getFullYear(),
-      rating: Number(rating) || 7.0,
-      director: 'Chưa rõ',
-      duration: 120,
-      description: 'Chưa có mô tả'
-    };
-
-    onAddMovie(newMovie);
-    setTitle('');
-    setYear('');
-    setRating('');
+  const handleClear = () => {
+    onSearchChange('');
+    if (inputRef.current) {
+      inputRef.current.focus();
+    }
   };
 
   return (
-    <form onSubmit={handleSubmit} style={{ display: 'grid', gap: '8px', marginBottom: '15px' }}>
-      <input
-        type="text"
-        placeholder="Tên phim..."
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
-        style={{ padding: '8px' }}
-      />
-      <div style={{ display: 'flex', gap: '8px' }}>
-        <select value={genre} onChange={(e) => setGenre(e.target.value)} style={{ flex: 1, padding: '8px' }}>
-          <option value="Sci-Fi">Sci-Fi</option>
-          <option value="Animation">Animation</option>
-          <option value="Action">Action</option>
-          <option value="Drama">Drama</option>
-          <option value="Comedy">Comedy</option>
-          <option value="Romance">Romance</option>
-        </select>
+    <div className="search-bar mb-3">
+      <label htmlFor="movie-search-input" className="form-label fw-semibold">
+        Tìm kiếm phim / Search Movie:
+      </label>
+      <div className="input-group">
+        <span className="input-group-text">
+          <FaSearch />
+        </span>
         <input
-          type="number"
-          placeholder="Năm (VD: 2024)"
-          value={year}
-          onChange={(e) => setYear(e.target.value)}
-          style={{ flex: 1, padding: '8px' }}
+          id="movie-search-input"
+          ref={inputRef}
+          type="text"
+          className="form-control"
+          placeholder="Tìm tên phim..."
+          value={searchTerm}
+          onChange={(e) => onSearchChange(e.target.value)}
         />
-        <input
-          type="number"
-          step="0.1"
-          placeholder="Điểm (VD: 8.5)"
-          value={rating}
-          onChange={(e) => setRating(e.target.value)}
-          style={{ flex: 1, padding: '8px' }}
-        />
-        <button type="submit" style={{ padding: '8px 15px', cursor: 'pointer' }}>Thêm</button>
+        {searchTerm && (
+          <button
+            className="btn btn-outline-secondary"
+            type="button"
+            onClick={handleClear}
+            title="Xóa tìm kiếm"
+          >
+            <FaTimes />
+          </button>
+        )}
       </div>
-    </form>
+    </div>
   );
 }
+
+export default SearchBar;

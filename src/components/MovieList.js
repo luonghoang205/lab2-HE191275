@@ -1,53 +1,49 @@
 import React from 'react';
-import TaskItem from './TaskItem';
+import MovieItem from './MovieItem';
 
-export default function TaskList({
-  tasks,
-  filter,
-  onFilterChange,
-  searchTerm,
-  onSearchChange,
-  onToggleTask,
-  
+function MovieList({
+  movies,
+  totalCount,
+  favorites,
+  onToggleFavorite,
+  onSelectMovie,
+  selectedMovieId
 }) {
+  const favoriteCount = favorites.length;
+  const displayedCount = movies.length;
+
   return (
-    <div>
-      {/* Thanh bộ lọc & Tìm kiếm */}
-      <div style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}>
-        <select
-          value={filter}
-          onChange={(e) => onFilterChange(e.target.value)}
-          style={{ padding: '8px' }}
-        >
-          <option value="all">Tất cả ▼</option>
-          <option value="uncompleted">Chưa làm</option>
-          <option value="completed">Hoàn thành</option>
-        </select>
-
-        <input
-          type="text"
-          placeholder="Tìm kiếm................"
-          value={searchTerm}
-          onChange={(e) => onSearchChange(e.target.value)}
-          style={{ flex: 1, padding: '8px' }}
-        />
+    <div className="movie-list">
+      {/* Summary statistics bar as in wireframe: Tổng: X | Yêu thích: Y (Đang hiển thị: Z) */}
+      <div className="stats-bar alert alert-secondary py-2 px-3 mb-3 d-flex flex-wrap justify-content-between align-items-center">
+        <div>
+          <span className="fw-semibold">Tổng:</span> {totalCount ?? displayedCount}{' '}
+          <span className="mx-2">|</span>
+          <span className="fw-semibold text-danger">Yêu thích:</span> {favoriteCount}{' '}
+          <span className="mx-2">|</span>
+          <span className="fw-semibold text-primary">Đang hiển thị:</span> {displayedCount}
+        </div>
       </div>
 
-      {/* Danh sách Task */}
-      <div>
-        {tasks.length === 0 ? (
-          <p style={{ textAlign: 'center', color: '#888' }}>Không tìm thấy công việc nào</p>
-        ) : (
-          tasks.map((task) => (
-            <TaskItem
-              key={task.id}
-              task={task}
-              onToggleTask={onToggleTask}
-             
-            />
-          ))
-        )}
-      </div>
+      {/* List of movies */}
+      {displayedCount === 0 ? (
+        <div className="text-center py-5 text-muted">
+          <p className="fs-5 mb-0">Không tìm thấy bộ phim nào phù hợp.</p>
+        </div>
+      ) : (
+        movies.map((movie) => (
+          <MovieItem
+            key={movie.id}
+            movie={movie}
+            isFavorite={favorites.includes(movie.id)}
+            onToggleFavorite={onToggleFavorite}
+            onSelectMovie={onSelectMovie}
+            isSelected={selectedMovieId === movie.id}
+          />
+        ))
+      )}
     </div>
   );
 }
+
+export default MovieList;

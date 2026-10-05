@@ -1,75 +1,131 @@
-import React, { useState, useMemo, useCallback, useContext } from 'react';
+import React, { useState, useMemo, useContext } from 'react';
 import Header from './components/Header';
-import AddBar from './components/AddBar';
 import SearchBar from './components/SearchBar';
 import GenreFilter from './components/GenreFilter';
 import MovieList from './components/MovieList';
 import MovieDetail from './components/MovieDetail';
+import { ThemeProvider, ThemeContext } from './context/ThemeContext';
 import useLocalStorage from './hooks/useLocalStorage';
-import { ThemeContext } from './context/ThemeContext';
-import { movies as initialMovies } from './datas/movies';
+import moviesData from './datas/movies';
+import './App.css';
 
-export default function App() {
-  const { darkMode } = useContext(ThemeContext);
-  const [movieList, setMovieList] = useLocalStorage('movies', initialMovies);
-  const [selectedGenre, setSelectedGenre] = useState('All');
+function MainApp() {
+  const { theme } = useContext(ThemeContext);
+
+  // Search, Filter, Sort state
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedMovie, setSelectedMovie] = useState(null);
+  const [selectedGenre, setSelectedGenre] = useState('All Genres');
+  const [sortBy, setSortBy] = useState('default');
 
-  // Thêm phim
-  const handleAddMovie = useCallback((newMovieData) => {
-    setMovieList((prev) => [{ id: Date.now(), ...newMovieData }, ...prev]);
-  }, [setMovieList]);
+  // Favorites state persisted in localStorage
+  const [favorites, setFavorites] = useLocalStorage('movie_favorites', [2, 3]);
 
-  // Xóa phim
-  const handleDeleteMovie = useCallback((id) => {
-    setMovieList((prev) => prev.filter((m) => m.id !== id));
-    if (selectedMovie && selectedMovie.id === id) {
-      setSelectedMovie(null);
-    }
-  }, [setMovieList, selectedMovie]);
+  // Selected movie for details panel (default to first movie as depicted in wireframe)
+  const [selectedMovie, setSelectedMovie] = useState(moviesData[0] || null);
 
-  // Lọc và Tìm kiếm
-  const filteredMovies = useMemo(() => {
-    return movieList.filter((movie) => {
-      const matchesGenre = selectedGenre === 'All' || movie.genre === selectedGenre;
-      const matchesSearch = movie.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                            movie.director.toLowerCase().includes(searchTerm.toLowerCase());
-      return matchesGenre && matchesSearch;
+  // Toggle favorite function
+  const handleToggleFavorite = (movieId) => {
+    setFavorites((prevFavorites) => {
+      if (prevFavorites.includes(movieId)) {
+        return prevFavorites.filter((id) => id !== movieId);
+      } else {
+        return [...prevFavorites, movieId];
+      }
     });
-  }, [movieList, selectedGenre, searchTerm]);
+  };
+
+  // Select movie for detail view
+  const handleSelectMovie = (movie) => {
+    setSelectedMovie(movie);
+  };
+
+  // Close movie detail view
+  const handleCloseDetail = () => {
+    setSelectedMovie(null);
+  };
+
+  // Filter and sort movies dynamically
+  const filteredAndSortedMovies = useMemo(() => {
+    let result = [...moviesData];
+
+    // 1. Search by title (case-insensitive)
+    if (searchTerm.trim() !== '') {
+      const lowerSearch = searchTerm.trim().toLowerCase();
+      result = result.filter((movie) =>
+        movie.title.toLowerCase().includes(lowerSearch)
+      );
+    }
+
+    // 2. Filter by genre
+    if (selectedGenre && selectedGenre !== 'All Genres') {
+      result = result.filter(
+        (movie) =>
+          movie.genre === selectedGenre ||
+          (movie.title === 'Your Name' && selectedGenre === 'Animation')
+      );
+    }
+
+    // 3. Sort by rating
+    if (sortBy === 'rating-desc') {
+      result.sort((a, b) => b.rating - a.rating);
+    } else if (sortBy === 'rating-asc') {
+      result.sort((a, b) => a.rating - b.rating);
+    }
+
+    return result;
+  }, [searchTerm, selectedGenre, sortBy]);
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      backgroundColor: darkMode ? '#222' : '#f4f4f9',
-      color: darkMode ? '#fff' : '#333',
-      padding: '20px'
-    }}>
-      <div style={{
-        maxWidth: '600px',
-        margin: '0 auto',
-        padding: '20px',
-        borderRadius: '8px',
-        backgroundColor: darkMode ? '#333' : '#fff',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-      }}>
-        <Header />
-        <AddBar onAddMovie={handleAddMovie} />
-        <SearchBar searchTerm={searchTerm} onSearchChange={setSearchTerm} />
-        <GenreFilter selectedGenre={selectedGenre} onGenreChange={setSelectedGenre} />
+    <div className={`app-container ${theme} min-vh-100`}>
+      {/* Header with Title and Theme Toggle */}
+      <Header />
 
-        <MovieList
-          movies={filteredMovies}
-          onDeleteMovie={handleDeleteMovie}
-          onSelectMovie={setSelectedMovie}
+      <main className="container pb-5">
+        {/* Search Bar with auto-focus */}
+        <SearchBar
+          searchTerm={searchTerm}
+          onSearchChange={setSearchTerm}
         />
 
-        <MovieDetail 
-          movie={selectedMovie} 
-          onClose={() => setSelectedMovie(null)} 
+        {/* Genre Filter & Sort by Rating */}
+        <GenreFilter
+          selectedGenre={selectedGenre}
+          onGenreChange={setSelectedGenre}
+          sortBy={sortBy}
+          onSortChange={setSortBy}
         />
-      </div>
+
+        {/* Main Content: Left Movie List, Right Movie Detail */}
+        <div className="row g-4">
+          <div className="col-lg-7">
+            <MovieList
+              movies={filteredAndSortedMovies}
+              totalCount={moviesData.length}
+              favorites={favorites}
+              onToggleFavorite={handleToggleFavorite}
+              onSelectMovie={handleSelectMovie}
+              selectedMovieId={selectedMovie ? selectedMovie.id : null}
+            />
+          </div>
+
+          <div className="col-lg-5">
+            <MovieDetail
+              movie={selectedMovie}
+              onClose={handleCloseDetail}
+            />
+          </div>
+        </div>
+      </main>
     </div>
   );
 }
+
+function App() {
+  return (
+    <ThemeProvider>
+      <MainApp />
+    </ThemeProvider>
+  );
+}
+
+export default App;
